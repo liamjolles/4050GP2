@@ -4,3 +4,6 @@ bench_inversions
 .DS_Store
 ~$*.docx
 Report.docx
+test_coins
+bench_coins
+report_part2.md
