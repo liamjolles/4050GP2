@@ -1,0 +1,5 @@
+test_inversions
+bench_inversions
+*.o
+.DS_Store
+~$*.docx
