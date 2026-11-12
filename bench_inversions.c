@@ -1,5 +1,10 @@
-/* Part 1B - runtime scaling, brute force vs sort-and-count
- * writes results/inversions_bench.csv */
+/* Part 1B runtime: brute force vs sort-and-count on random permutations.
+ * Prints a table and writes results/inversions_bench.csv.
+ *
+ * Each time is the median of REPEATS samples. One call at small n is
+ * below the timer's resolution, so a sample is the average over a batch
+ * of calls. The input is copied before every call for both methods,
+ * since sort_and_count sorts in place. */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,11 +14,13 @@
 
 #define SEED 4050
 #define REPEATS 7
+#define CMP(a, b) (((a) > (b)) - ((a) < (b)))
 
 static const int SIZES[] = {2, 4, 8, 16, 32, 64, 128, 256, 512, 1000,
                             2000, 4000, 8000, 16000, 32000};
+#define NSIZES (int)(sizeof SIZES / sizeof *SIZES)
 
-static volatile long long sink;  /* keeps compiler from skipping calls */
+static volatile long long sink;  /* so -O2 can't skip the calls */
 
 static double now(void) {
     struct timespec ts;
@@ -22,12 +29,10 @@ static double now(void) {
 }
 
 static int cmp_double(const void *x, const void *y) {
-    double a = *(const double *)x, b = *(const double *)y;
-    return (a > b) - (a < b);
+    return CMP(*(const double *)x, *(const double *)y);
 }
 
-/* median of REPEATS samples, each sample = avg over a batch of calls
- * (timer too coarse for one call at small n), copy done for both methods */
+/* median seconds per call */
 static double time_it(int brute, const int *a, int *work, int n) {
     double t[REPEATS];
     int batch = 1 + 100000 / n;
@@ -44,34 +49,32 @@ static double time_it(int brute, const int *a, int *work, int n) {
 }
 
 int main(void) {
-    int nsizes = sizeof SIZES / sizeof *SIZES;
-    double bf[sizeof SIZES / sizeof *SIZES], dc[sizeof SIZES / sizeof *SIZES];
+    double bf[NSIZES], dc[NSIZES];
     srand(SEED);
-
-    for (int s = 0; s < nsizes; s++) {
+    for (int s = 0; s < NSIZES; s++) {
         int n = SIZES[s];
         int *a = malloc(n * sizeof *a), *work = malloc(n * sizeof *work);
-        for (int i = 0; i < n; i++) a[i] = i;
-        for (int i = n - 1; i > 0; i--) {  /* random permutation */
-            int j = rand() % (i + 1), x = a[i];
-            a[i] = a[j]; a[j] = x;
-        }
+        random_perm(a, n);
         bf[s] = time_it(1, a, work, n);  /* same array for both */
         dc[s] = time_it(0, a, work, n);
-        free(a); free(work);
+        free(a);
+        free(work);
     }
 
-    /* printing + file output after all timing */
+    /* output only after all timing is done */
     printf("%7s %14s %14s %9s\n", "n", "brute (s)", "d&c (s)", "brute/dc");
-    for (int s = 0; s < nsizes; s++)
+    for (int s = 0; s < NSIZES; s++)
         printf("%7d %14.9f %14.9f %9.2f\n", SIZES[s], bf[s], dc[s], bf[s] / dc[s]);
 
     FILE *f = fopen("results/inversions_bench.csv", "w");
-    if (!f) { perror("results/inversions_bench.csv"); return 1; }
+    if (!f) {
+        perror("results/inversions_bench.csv");
+        return 1;
+    }
     fprintf(f, "n,brute_median_s,dc_median_s\n");
-    for (int s = 0; s < nsizes; s++)
+    for (int s = 0; s < NSIZES; s++)
         fprintf(f, "%d,%.9f,%.9f\n", SIZES[s], bf[s], dc[s]);
     fclose(f);
-    printf("wrote results/inversions_bench.csv (median of %d runs, seed %d)\n", REPEATS, SEED);
+    printf("wrote results/inversions_bench.csv (median of %d, seed %d)\n", REPEATS, SEED);
     return 0;
 }

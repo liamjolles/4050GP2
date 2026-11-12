@@ -12,7 +12,7 @@ Divide and conquer (inversion counting) + dynamic programming (coin change).
 
 | File | Contents |
 |---|---|
-| `inversions.c` / `inversions.h` | `brute_force` and `sort_and_count` |
+| `inversions.c` / `inversions.h` | `brute_force`, `sort_and_count`, and `random_perm` (input generator) |
 | `test_inversions.c` | 12 hand tests + 500 random cross-checks against brute force |
 | `bench_inversions.c` | runtime scaling, writes `results/inversions_bench.csv` |
 
@@ -23,6 +23,6 @@ make test     # validation
 make bench    # timing table + results/inversions_bench.csv
 ```
 
-Random inputs use `srand(4050)`. Each timing is the median of 7 samples. A sample is the
+Random inputs use `srand(4050)`. `rand()` differs between C libraries, so the exact arrays can differ on another OS. Each timing is the median of 7 samples. A sample is the
 average over a batch of `1 + 100000/n` calls, since one call at small n is below timer
 resolution. Exact times depend on the machine.
