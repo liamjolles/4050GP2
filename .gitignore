@@ -3,3 +3,4 @@ bench_inversions
 *.o
 .DS_Store
 ~$*.docx
+Report.docx
